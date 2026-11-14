@@ -1,3 +1,4 @@
 relate-db==1.0.1
+requests>=2.31
 pytest>=8.0
 pytest-asyncio>=0.23
