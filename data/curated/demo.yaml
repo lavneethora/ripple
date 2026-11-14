@@ -1,0 +1,162 @@
+# ILLUSTRATIVE FIXTURE, NOT CURATED EVIDENCE.
+#
+# Every claim here is tagged provenance_tier: synthetic and every id is
+# prefixed SYN_. These claims are NOT attributed to any real document and
+# must never appear in a headline figure or a demo as if they were.
+#
+# The reason: OpenAlex records who cited whom, not what rests on what. The
+# justification layer therefore cannot be derived from the bibliographic
+# data, and writing plausible-sounding claims and attributing them to a real
+# clinical guidance document would be fabrication of exactly the kind this
+# project exists to detect. Real CURATED claims are read from source
+# documents and replace this file.
+#
+# What it is for: exercising every branch of the status lattice end to end
+# against the real store, so the pipeline is proven before curation begins.
+#
+# The work ids ARE real and present in data/ripple-retractions:
+#   W3010930696  Gautret 2020, hydroxychloroquine. Retracted 2020-07-01.
+#   W3025220694  Cardiac case report. Retracted.
+#   W3001118548  Huang 2020, clinical features. Not retracted.
+#   W3008827533  Guan 2020, clinical characteristics. Not retracted.
+#   W3009885589  Zhou 2020, clinical course and mortality. Not retracted.
+#   W3042270788  RECOVERY, dexamethasone. Not retracted.
+
+claims:
+  # 1. Rests on the retracted study alone.             -> UNSUPPORTED
+  - id: SYN_SOLE_SUPPORT
+    text: "[SYNTHETIC] A conclusion whose only support is the retracted study."
+    kind: efficacy
+    provenance_tier: synthetic
+
+  # 2. One hop from the retraction, but corroborated.  -> SUPPORTED
+  - id: SYN_NEAR_CORROBORATED
+    text: "[SYNTHETIC] A conclusion one hop from the retraction holding 2-of-3 support."
+    kind: efficacy
+    provenance_tier: synthetic
+
+  # 3. Five derivations away, grounded only in it.     -> UNSUPPORTED
+  - id: SYN_CHAIN_1
+    text: "[SYNTHETIC] First link of a chain grounded only in the retracted study."
+    provenance_tier: synthetic
+  - id: SYN_CHAIN_2
+    text: "[SYNTHETIC] Second link."
+    provenance_tier: synthetic
+  - id: SYN_CHAIN_3
+    text: "[SYNTHETIC] Third link."
+    provenance_tier: synthetic
+  - id: SYN_FAR_DEPENDENT
+    text: "[SYNTHETIC] Five derivations downstream, wholly dependent on the retraction."
+    provenance_tier: synthetic
+
+  # 4. Lost one of two independent supports.           -> SUPPORTED_WEAKENED
+  - id: SYN_WEAKENED
+    text: "[SYNTHETIC] A conclusion that loses one of two independent supports."
+    provenance_tier: synthetic
+
+  # 5. No dependency path to the change at all.        -> SUPPORTED
+  - id: SYN_UNRELATED
+    text: "[SYNTHETIC] A conclusion resting on unrelated evidence."
+    provenance_tier: synthetic
+
+  # 6. Mutually supporting reviews, nothing underneath. -> UNSUPPORTED_CIRCULAR
+  - id: SYN_RING_A
+    text: "[SYNTHETIC] Ring member A, supported only by B."
+    provenance_tier: synthetic
+  - id: SYN_RING_B
+    text: "[SYNTHETIC] Ring member B, supported only by C."
+    provenance_tier: synthetic
+  - id: SYN_RING_C
+    text: "[SYNTHETIC] Ring member C, supported only by A."
+    provenance_tier: synthetic
+
+  # 7. An antecedent the system has not adjudicated.   -> INDETERMINATE
+  - id: SYN_NOT_ADJUDICATED
+    text: "[SYNTHETIC] A belief the system has not ingested or assessed."
+    provenance_tier: synthetic
+    label: UNKNOWN
+  - id: SYN_DEPENDS_ON_UNKNOWN
+    text: "[SYNTHETIC] A conclusion resting partly on an unadjudicated belief."
+    provenance_tier: synthetic
+
+justifications:
+  - id: SYN_J_SOLE
+    consequent: SYN_SOLE_SUPPORT
+    antecedents: [W3010930696]
+    rule: single_study
+    confidence: 0.35
+    provenance_tier: synthetic
+
+  # Threshold 2 of 3: survives losing the retracted antecedent.
+  - id: SYN_J_NEAR
+    consequent: SYN_NEAR_CORROBORATED
+    antecedents: [W3010930696, W3001118548, W3008827533]
+    threshold: 2
+    rule: m_of_n_replication
+    confidence: 0.82
+    provenance_tier: synthetic
+
+  - id: SYN_J_CHAIN_1
+    consequent: SYN_CHAIN_1
+    antecedents: [SYN_SOLE_SUPPORT]
+    rule: derived
+    provenance_tier: synthetic
+  - id: SYN_J_CHAIN_2
+    consequent: SYN_CHAIN_2
+    antecedents: [SYN_CHAIN_1]
+    rule: derived
+    provenance_tier: synthetic
+  - id: SYN_J_CHAIN_3
+    consequent: SYN_CHAIN_3
+    antecedents: [SYN_CHAIN_2]
+    rule: derived
+    provenance_tier: synthetic
+  - id: SYN_J_FAR
+    consequent: SYN_FAR_DEPENDENT
+    antecedents: [SYN_CHAIN_3]
+    rule: derived
+    provenance_tier: synthetic
+
+  # Two independent justifications; the first dies with the retraction.
+  - id: SYN_J_WEAK_RETRACTED
+    consequent: SYN_WEAKENED
+    antecedents: [W3010930696]
+    rule: single_study
+    confidence: 0.35
+    provenance_tier: synthetic
+  - id: SYN_J_WEAK_SURVIVING
+    consequent: SYN_WEAKENED
+    antecedents: [W3009885589]
+    rule: single_study
+    confidence: 0.71
+    provenance_tier: synthetic
+
+  - id: SYN_J_UNRELATED
+    consequent: SYN_UNRELATED
+    antecedents: [W3042270788]
+    rule: single_rct
+    confidence: 0.93
+    provenance_tier: synthetic
+
+  - id: SYN_J_RING_A
+    consequent: SYN_RING_A
+    antecedents: [SYN_RING_B]
+    rule: cites_review
+    provenance_tier: synthetic
+  - id: SYN_J_RING_B
+    consequent: SYN_RING_B
+    antecedents: [SYN_RING_C]
+    rule: cites_review
+    provenance_tier: synthetic
+  - id: SYN_J_RING_C
+    consequent: SYN_RING_C
+    antecedents: [SYN_RING_A]
+    rule: cites_review
+    provenance_tier: synthetic
+
+  - id: SYN_J_UNKNOWN
+    consequent: SYN_DEPENDS_ON_UNKNOWN
+    antecedents: [W3008827533, SYN_NOT_ADJUDICATED]
+    rule: combined
+    confidence: 0.5
+    provenance_tier: synthetic
