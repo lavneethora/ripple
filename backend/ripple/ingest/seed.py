@@ -16,11 +16,19 @@ from pathlib import Path
 from typing import Any
 
 from ripple.graph.actor import GraphActor
+from ripple.ingest.retractions import (
+    RetractionFacts,
+    apply_curated,
+    facts_from_crossref,
+    load_curated_reasons,
+)
 from ripple.ingest.sources import (
     Fetcher,
+    fetch_crossref,
     fetch_retraction,
     fetch_works_batch,
     iter_citing_works,
+    reconstruct_abstract,
     short_id,
     total_citing,
 )
@@ -37,6 +45,8 @@ from ripple.schema.model import (
 
 # Guards an in-memory engine against an unbounded citation closure.
 MAX_WORKS = 2_000
+
+CURATED_REASONS = Path(__file__).resolve().parents[3] / "data" / "curated" / "retraction_reasons.yaml"
 
 
 @dataclass
@@ -56,6 +66,9 @@ class SeedPlan:
 @dataclass
 class SeedReport:
     works: int = 0
+    retraction_facts: dict[str, RetractionFacts] | None = None
+    openalex_false_positives: int = 0
+    procedural_retractions: int = 0
     citations: int = 0
     authors: int = 0
     retractions: int = 0
@@ -99,6 +112,26 @@ def _work_row(work: dict[str, Any]) -> dict[str, Any]:
         "label": "IN",
     }
 
+
+UPSERT_RETRACTION_FACTS = """
+UNWIND $rows AS row
+MATCH (w:Work {openalex_id: row.openalex_id})
+SET w.is_retracted = row.is_retracted,
+    w.retraction_day = row.retraction_day,
+    w.retraction_reason_class = row.reason_class,
+    w.openalex_flag_disputed = row.disputed
+WITH w, row WHERE row.is_retracted
+MERGE (w)-[:HAS_RETRACTION]->(re:RetractionEvent {id: row.event_id})
+SET re.valid_to_day = row.retraction_day,
+    re.announced_day = row.retraction_day,
+    re.tx_from_day = row.retraction_day,
+    re.retracted_on = row.retracted_on,
+    re.notice_doi = row.notice_doi,
+    re.reason_class = row.reason_class,
+    re.reason_text = row.reason_text,
+    re.source = row.source
+RETURN count(w) AS n
+"""
 
 UPSERT_WORKS = """
 UNWIND $rows AS row
@@ -315,6 +348,58 @@ def seed(
         1 for r in unique_rows if r["awareness"] == Awareness.UNAMBIGUOUS.value
     )
     say(f"Wrote {report.citations} citation edges")
+
+    # --- verify every OpenAlex retraction flag against Crossref ---
+    # OpenAlex produces false positives: in this dataset a 2020 case report is
+    # flagged retracted while Crossref holds no retraction record for it at
+    # all, because what was actually withdrawn was a duplicate of it at a
+    # different DOI. Crossref decides, and reasons are classified so that a
+    # procedural withdrawal does not break everything downstream of it.
+    curated_reasons, disputed_notes = load_curated_reasons(CURATED_REASONS)
+    facts: dict[str, RetractionFacts] = {}
+    flagged = [w for w in collected.values() if w.get("is_retracted")]
+    say(f"Verifying {len(flagged)} OpenAlex retraction flags against Crossref")
+    for work in flagged:
+        wid = short_id(work["id"])
+        message = fetch_crossref(fetcher, work.get("doi") or "")
+        notice = reconstruct_abstract(work.get("abstract_inverted_index"))
+        f = facts_from_crossref(
+            message, openalex_is_retracted=True, notice_text=notice
+        )
+        curated = curated_reasons.get(wid)
+        if curated is not None and f.is_retracted:
+            f = apply_curated(f, curated)
+            say(f"  {wid}: reason curated from {curated.source_type}")
+        facts[wid] = f
+        if not f.is_retracted:
+            report.openalex_false_positives += 1
+            say(f"  {wid}: no Crossref retraction record, flag not trusted")
+        elif f.reason_class is not ReasonClass.SUBSTANTIVE:
+            report.procedural_retractions += int(
+                f.reason_class is ReasonClass.PROCEDURAL
+            )
+            say(f"  {wid}: retracted {f.retracted_on}, reason {f.reason_class.value}")
+        else:
+            say(f"  {wid}: retracted {f.retracted_on}, reason SUBSTANTIVE")
+
+    fact_rows = [
+        {
+            "openalex_id": wid,
+            "is_retracted": f.is_retracted,
+            "retraction_day": to_epoch_day(f.retracted_on) if f.retracted_on else None,
+            "retracted_on": f.retracted_on,
+            "reason_class": f.reason_class.value,
+            "reason_text": f.reason_text,
+            "notice_doi": f.notice_doi,
+            "source": f.source,
+            "disputed": f.openalex_disagrees,
+            "event_id": f"RE_{wid}",
+        }
+        for wid, f in sorted(facts.items())
+    ]
+    if fact_rows:
+        actor.write(UPSERT_RETRACTION_FACTS, {"rows": fact_rows})
+    report.retraction_facts = facts
 
     # --- authors, for the independence check on surviving support ---
     author_rows: list[dict[str, Any]] = []
