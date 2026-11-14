@@ -145,11 +145,12 @@ Every justification carries a provenance tier, shown next to any status it
 produces, so hand-curated support is never presented as equivalent to
 machine-extracted support.
 
-### AI assistance
+## AI assistance
 
-Developed with AI coding assistance (Claude). All design decisions, the
-engine's algorithm choice, and the curated justification data are reviewed and
-owned by the author.
+Built with AI coding assistance (Claude Code), used for the implementation,
+the test suite, the tooling scripts, and research into what this build of
+Relate actually supports. Per the hackathon rules, the author remains
+responsible for the result.
 
 ## License
 
