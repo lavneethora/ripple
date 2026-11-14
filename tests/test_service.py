@@ -22,6 +22,7 @@ from ripple.tms.service import (
 
 ROOT = Path(__file__).resolve().parents[1]
 STORE = ROOT / "data" / "ripple-retractions"
+SYNTHETIC_FIXTURE = ROOT / "tests" / "fixtures" / "synthetic_lattice.yaml"
 FOCAL = "W3010930696"          # Gautret 2020, retracted 2020-07-01
 ESC_GUIDANCE = "W3216235612"   # cites it 439 days later
 
@@ -42,6 +43,21 @@ def actor(tmp_path: Path):
 
 @pytest.fixture()
 def after(actor: GraphActor):
+    """Verdicts over the curated claims once the retraction is known."""
+    return propagate(actor, retracted_work=FOCAL, epoch=2)
+
+
+@pytest.fixture()
+def lattice(actor: GraphActor):
+    """The synthetic fixture, loaded into a throwaway copy.
+
+    It covers branches the real evidence base does not contain: circular
+    support, an unadjudicated antecedent, and a long derivation chain. It is
+    never written to the committed store.
+    """
+    from ripple.ingest import justifications
+
+    justifications.load(actor, SYNTHETIC_FIXTURE)
     return propagate(actor, retracted_work=FOCAL, epoch=2)
 
 
@@ -128,45 +144,48 @@ def test_exposure_is_reported_separately_from_loss_of_support(actor: GraphActor)
 
 # --- the engine's verdicts ---
 
-def test_sole_support_on_a_retracted_study_collapses(after):
-    assert after.status_of("SYN_SOLE_SUPPORT") is Status.UNSUPPORTED
+def test_sole_support_on_a_retracted_study_collapses(lattice):
+    assert lattice.status_of("SYN_SOLE_SUPPORT") is Status.UNSUPPORTED
 
 
-def test_corroborated_claim_one_hop_away_survives(after):
-    assert after.status_of("SYN_NEAR_CORROBORATED") is Status.SUPPORTED
+def test_corroborated_claim_one_hop_away_survives(lattice):
+    assert lattice.status_of("SYN_NEAR_CORROBORATED") is Status.SUPPORTED
 
 
-def test_wholly_dependent_claim_five_hops_away_collapses(after):
-    assert after.status_of("SYN_FAR_DEPENDENT") is Status.UNSUPPORTED
+def test_wholly_dependent_claim_five_hops_away_collapses(lattice):
+    assert lattice.status_of("SYN_FAR_DEPENDENT") is Status.UNSUPPORTED
 
 
-def test_status_does_not_track_graph_distance(after):
+def test_status_does_not_track_graph_distance(lattice):
     """The demo's central claim, asserted against the real store."""
-    near = after.status_of("SYN_NEAR_CORROBORATED")
-    far = after.status_of("SYN_FAR_DEPENDENT")
+    near = lattice.status_of("SYN_NEAR_CORROBORATED")
+    far = lattice.status_of("SYN_FAR_DEPENDENT")
     assert near is Status.SUPPORTED and far is Status.UNSUPPORTED
 
 
-def test_losing_one_of_two_supports_weakens_rather_than_breaks(after):
-    assert after.status_of("SYN_WEAKENED") is Status.SUPPORTED_WEAKENED
+def test_losing_one_of_two_supports_weakens_rather_than_breaks(lattice):
+    assert lattice.status_of("SYN_WEAKENED") is Status.SUPPORTED_WEAKENED
 
 
-def test_unrelated_evidence_is_untouched(after):
-    assert after.status_of("SYN_UNRELATED") is Status.SUPPORTED
+def test_unrelated_evidence_is_untouched(lattice):
+    assert lattice.status_of("SYN_UNRELATED") is Status.SUPPORTED
 
 
-def test_mutually_citing_ring_is_circular(after):
+def test_mutually_citing_ring_is_circular(lattice):
     for ring in ("SYN_RING_A", "SYN_RING_B", "SYN_RING_C"):
-        assert after.status_of(ring) is Status.UNSUPPORTED_CIRCULAR
+        assert lattice.status_of(ring) is Status.UNSUPPORTED_CIRCULAR
 
 
-def test_unadjudicated_antecedent_is_not_guessed(after):
-    assert after.status_of("SYN_DEPENDS_ON_UNKNOWN") is Status.INDETERMINATE
+def test_unadjudicated_antecedent_is_not_guessed(lattice):
+    assert lattice.status_of("SYN_DEPENDS_ON_UNKNOWN") is Status.INDETERMINATE
 
 
 # --- before and after ---
 
 def test_beliefs_actually_change_when_the_retraction_is_learned(actor: GraphActor):
+    from ripple.ingest import justifications
+
+    justifications.load(actor, SYNTHETIC_FIXTURE)
     actor.write(
         "MATCH (w:Work {openalex_id:$id}) SET w.is_retracted = false, w.label = 'IN'",
         {"id": FOCAL},
@@ -181,7 +200,7 @@ def test_beliefs_actually_change_when_the_retraction_is_learned(actor: GraphActo
     assert before.summary != after.summary
 
 
-def test_verdicts_are_persisted_to_the_store(actor: GraphActor, after):
+def test_verdicts_are_persisted_to_the_store(actor: GraphActor, after):  # noqa: ARG001
     rows = actor.read(
         "MATCH (c:Claim) WHERE c.status IS NOT NULL "
         "RETURN c.status AS status, count(c) AS n ORDER BY status"
@@ -203,6 +222,9 @@ def test_propagation_is_deterministic(actor: GraphActor):
 # --- projection integrity ---
 
 def test_derived_claims_are_never_seeded_as_premises(actor: GraphActor):
+    from ripple.ingest import justifications
+
+    justifications.load(actor, SYNTHETIC_FIXTURE)
     """A derived claim seeded from its stored label would hold itself up.
 
     If that happened every retraction would be a silent no-op, so the guard
@@ -230,20 +252,22 @@ def test_retracted_work_is_out_regardless_of_stale_label(actor: GraphActor):
     assert projection.boundary[projection.idx[FOCAL]] is Boundary.OUT
 
 
-def test_synthetic_fixtures_are_tagged_as_such(actor: GraphActor):
-    """Nothing in the demo fixture may pass as curated evidence."""
+def test_committed_store_carries_only_curated_justifications(actor: GraphActor):
+    """No synthetic structure may ship in the artifact judges inspect."""
     rows = actor.read(
         "MATCH (j:Justification) RETURN j.provenance_tier AS tier, count(j) AS n"
     )
     tiers = {r["tier"]: r["n"] for r in rows}
-    assert set(tiers) == {"synthetic"}, (
-        "the fixture must stay tagged synthetic until real curation replaces it"
-    )
+    assert tiers, "the committed store has no justification layer"
+    assert set(tiers) == {"curated"}, f"non-curated structure in the store: {tiers}"
 
 
 # --- label round-tripping ---
 
 def test_indeterminate_round_trips_as_unknown(actor: GraphActor):
+    from ripple.ingest import justifications
+
+    justifications.load(actor, SYNTHETIC_FIXTURE)
     """Repeated propagation must not quietly erase 'we cannot tell'.
 
     The stored label feeds the next propagation, so collapsing INDETERMINATE
@@ -266,3 +290,49 @@ def test_repeated_propagation_is_stable(actor: GraphActor):
     """Running the engine N times must not drift the store's conclusions."""
     summaries = [propagate(actor, retracted_work=FOCAL, epoch=i).summary for i in range(2, 7)]
     assert all(s == summaries[0] for s in summaries), summaries
+
+
+# --- the curated evidence base ---
+
+def test_curated_claim_resting_on_the_retracted_study_collapses(after):
+    """The retraction destroys the claim that hydroxychloroquine works."""
+    assert after.status_of("CL_HCQ_TREATS_COVID") is Status.UNSUPPORTED
+
+
+def test_the_recommendation_against_hcq_is_untouched(after):
+    """The substantive result, and the reason this is worth building.
+
+    "Hydroxychloroquine should not be used" never rested on the retracted
+    study. It rests on three independent randomised trials that found no
+    benefit, so retracting the paper that claimed benefit does not disturb
+    it. A system that propagated by citation distance would wrongly flag it.
+    """
+    assert after.status_of("CL_HCQ_NOT_INDICATED") is Status.SUPPORTED
+    assert after.status_of("CL_HCQ_NO_MORTALITY_BENEFIT") is Status.SUPPORTED
+    assert after.status_of("CL_HCQ_NO_CLINICAL_BENEFIT") is Status.SUPPORTED
+
+
+def test_two_of_three_real_trials_carry_the_null_result(actor: GraphActor, after):  # noqa: ARG001
+    row = actor.read(
+        "MATCH (j:Justification {id: 'J_HCQ_NO_MORTALITY_RCTS'}) "
+        "RETURN j.threshold AS threshold, j.arity AS arity"
+    )[0]
+    assert (row["threshold"], row["arity"]) == (2, 3)
+
+
+def test_procedural_withdrawal_questions_rather_than_breaks(after):
+    """Both references here are flagged retracted, and neither flag holds.
+
+    One has no Crossref retraction record at all; the other was withdrawn as
+    an accidental duplicate of it. Breaking the claim would be wrong twice
+    over, so it is flagged for review instead.
+    """
+    assert after.status_of("CL_COVID_HEART_BLOCK_CHILD") is Status.QUESTIONED
+
+
+def test_unrelated_curated_claim_is_untouched(after):
+    assert after.status_of("CL_DEXAMETHASONE_REDUCES_MORTALITY") is Status.SUPPORTED
+
+
+def test_only_one_curated_claim_loses_support(after):
+    assert after.summary == {"SUPPORTED": 4, "QUESTIONED": 1, "UNSUPPORTED": 1}

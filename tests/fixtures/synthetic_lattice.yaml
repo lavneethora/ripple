@@ -1,18 +1,13 @@
-# ILLUSTRATIVE FIXTURE, NOT CURATED EVIDENCE.
+# TEST FIXTURE. Never loaded into the committed store.
 #
-# Every claim here is tagged provenance_tier: synthetic and every id is
-# prefixed SYN_. These claims are NOT attributed to any real document and
-# must never appear in a headline figure or a demo as if they were.
+# The curated claims in data/curated/ are the real demo. This file exists
+# only to exercise branches of the status lattice that the real evidence base
+# does not happen to contain: circular support between mutually citing
+# reviews, an unadjudicated antecedent, and a five-link derivation chain.
 #
-# The reason: OpenAlex records who cited whom, not what rests on what. The
-# justification layer therefore cannot be derived from the bibliographic
-# data, and writing plausible-sounding claims and attributing them to a real
-# clinical guidance document would be fabrication of exactly the kind this
-# project exists to detect. Real CURATED claims are read from source
-# documents and replace this file.
-#
-# What it is for: exercising every branch of the status lattice end to end
-# against the real store, so the pipeline is proven before curation begins.
+# Every claim is tagged provenance_tier: synthetic and prefixed SYN_, and a
+# test asserts the committed store contains no synthetic justifications, so
+# this can never be mistaken for evidence.
 #
 # The work ids ARE real and present in data/ripple-retractions:
 #   W3010930696  Gautret 2020, hydroxychloroquine. Retracted 2020-07-01.

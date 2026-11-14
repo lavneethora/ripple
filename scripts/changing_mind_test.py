@@ -34,7 +34,7 @@ from ripple.tms.service import (  # noqa: E402
 
 STORE = ROOT / "data" / "ripple-retractions"
 WORK_DIR = ROOT / "data" / ".work"
-FIXTURE = ROOT / "data" / "curated" / "demo.yaml"
+FIXTURE = ROOT / "data" / "curated" / "hydroxychloroquine.yaml"
 FOCAL = "W3010930696"
 
 BADGE = {
@@ -121,23 +121,19 @@ def main() -> int:
         # --- the assertions that decide whether this passed
         print("\n" + "=" * 74)
         checks: list[tuple[str, bool]] = [
-            ("sole support on the retracted study loses support",
-             after.status_of("SYN_SOLE_SUPPORT") is Status.UNSUPPORTED),
-            ("1 hop away but 2-of-3 corroborated still holds",
-             after.status_of("SYN_NEAR_CORROBORATED") is Status.SUPPORTED),
-            ("5 hops away but wholly dependent loses support",
-             after.status_of("SYN_FAR_DEPENDENT") is Status.UNSUPPORTED),
-            ("status does not track distance (near holds, far does not)",
-             after.status_of("SYN_NEAR_CORROBORATED") is Status.SUPPORTED
-             and after.status_of("SYN_FAR_DEPENDENT") is Status.UNSUPPORTED),
-            ("losing 1 of 2 independent supports weakens, does not break",
-             after.status_of("SYN_WEAKENED") is Status.SUPPORTED_WEAKENED),
+            ("the claim resting on the retracted study loses support",
+             after.status_of("CL_HCQ_TREATS_COVID") is Status.UNSUPPORTED),
+            ("the recommendation against HCQ is untouched",
+             after.status_of("CL_HCQ_NOT_INDICATED") is Status.SUPPORTED),
+            ("the null result from three real RCTs still holds",
+             after.status_of("CL_HCQ_NO_MORTALITY_BENEFIT") is Status.SUPPORTED),
+            ("a procedural withdrawal flags rather than breaks its dependent",
+             after.status_of("CL_COVID_HEART_BLOCK_CHILD") is Status.QUESTIONED),
             ("unrelated evidence is untouched",
-             after.status_of("SYN_UNRELATED") is Status.SUPPORTED),
-            ("mutually citing ring is circular, not supported",
-             after.status_of("SYN_RING_A") is Status.UNSUPPORTED_CIRCULAR),
-            ("unadjudicated antecedent yields cannot-tell, not a guess",
-             after.status_of("SYN_DEPENDS_ON_UNKNOWN") is Status.INDETERMINATE),
+             after.status_of("CL_DEXAMETHASONE_REDUCES_MORTALITY") is Status.SUPPORTED),
+            ("the most downstream conclusion survives while its neighbour dies",
+             after.status_of("CL_HCQ_NOT_INDICATED") is Status.SUPPORTED
+             and after.status_of("CL_HCQ_TREATS_COVID") is Status.UNSUPPORTED),
             ("the retracted work and its evidence are preserved",
              bool(retraction_event(actor, FOCAL))),
             ("a belief actually changed status",
