@@ -190,6 +190,7 @@ def _graph_payload(a: GraphActor, statuses: dict[str, str]) -> dict[str, Any]:
     """
     claims = a.read(
         "MATCH (c:Claim) RETURN c.id AS id, c.text AS text, "
+        "coalesce(c.short, c.id) AS short, "
         "c.provenance_tier AS tier, c.label AS label ORDER BY id"
     )
     justs = a.read(
@@ -202,6 +203,7 @@ def _graph_payload(a: GraphActor, statuses: dict[str, str]) -> dict[str, Any]:
         "MATCH (b)-[:ANTECEDENT_OF]->(j:Justification) "
         "RETURN coalesce(b.id, b.openalex_id) AS belief, head(labels(b)) AS kind, "
         "       coalesce(b.text, b.title) AS title, "
+        "       coalesce(b.short, b.openalex_id, b.id) AS short, "
         "       coalesce(b.is_retracted, false) AS retracted, "
         "       b.label AS label, b.doi AS doi, j.id AS justification "
         "ORDER BY j.id, belief"
@@ -213,7 +215,7 @@ def _graph_payload(a: GraphActor, statuses: dict[str, str]) -> dict[str, Any]:
     for c in claims:
         nodes.append({
             "data": {
-                "id": c["id"], "kind": "claim", "label": c["id"],
+                "id": c["id"], "kind": "claim", "label": c["short"],
                 "text": c["text"], "tier": c["tier"],
                 "status": statuses.get(c["id"], Status.UNAFFECTED.value),
             }
@@ -239,7 +241,7 @@ def _graph_payload(a: GraphActor, statuses: dict[str, str]) -> dict[str, Any]:
                 "data": {
                     "id": bid,
                     "kind": "work" if row["kind"] == "Work" else "claim",
-                    "label": bid,
+                    "label": row["short"],
                     "text": row["title"],
                     "doi": row["doi"],
                     "retracted": bool(row["retracted"]),
@@ -278,6 +280,52 @@ def support(claim_id: str) -> dict[str, Any]:
     if not rows:
         raise HTTPException(404, f"no justifications for {claim_id}")
     return {"claim_id": claim_id, "justifications": rows}
+
+
+@app.get("/api/works/{work_id}")
+def work(work_id: str) -> dict[str, Any]:
+    """A single work, with its retraction facts and what it supports."""
+    a = actor()
+    rows = a.read(
+        "MATCH (w:Work {openalex_id: $id}) "
+        "OPTIONAL MATCH (w)-[:HAS_RETRACTION]->(re:RetractionEvent) "
+        "RETURN w.openalex_id AS work_id, w.doi AS doi, w.title AS title, "
+        "       coalesce(w.short, w.openalex_id) AS short, w.type AS type, "
+        "       w.venue AS venue, w.pub_date AS published, "
+        "       w.cited_by_count AS cited_by_count, "
+        "       coalesce(w.is_retracted, false) AS is_retracted, "
+        "       coalesce(w.openalex_flag_disputed, false) AS flag_disputed, "
+        "       re.retracted_on AS retracted_on, re.reason_class AS reason_class, "
+        "       re.reason_text AS reason_text, re.notice_doi AS notice_doi",
+        {"id": work_id},
+    )
+    if not rows:
+        raise HTTPException(404, f"no work {work_id}")
+
+    supports = a.read(
+        "MATCH (w:Work {openalex_id: $id})-[:ANTECEDENT_OF]->(j:Justification)"
+        "-[:SUPPORTS]->(c:Claim) "
+        "RETURN c.id AS claim_id, coalesce(c.short, c.id) AS short, "
+        "       c.status AS status, j.threshold AS threshold, j.id AS justification "
+        "ORDER BY c.id",
+        {"id": work_id},
+    )
+    authors = a.read(
+        "MATCH (w:Work {openalex_id: $id})-[r:AUTHORED_BY]->(a:Author) "
+        "RETURN a.display_name AS name ORDER BY r.position LIMIT 4",
+        {"id": work_id},
+    )
+    cites_focal = a.read(
+        "MATCH (w:Work {openalex_id: $id})-[c:CITES]->(:Work {openalex_id: $focal}) "
+        "RETURN c.post_retraction_lag_days AS lag, c.awareness AS awareness",
+        {"id": work_id, "focal": FOCAL},
+    )
+    return {
+        **rows[0],
+        "authors": [r["name"] for r in authors],
+        "supports": supports,
+        "cites_retracted_work": cites_focal[0] if cites_focal else None,
+    }
 
 
 @app.get("/api/exposure")
