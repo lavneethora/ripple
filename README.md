@@ -63,18 +63,43 @@ reason deliberately does **not** impeach the findings, because asserting a
 conclusion is unsupported on the strength of a reason nobody has read is the
 overreach this project exists to avoid.
 
-### Honest caveat on the current data
+### What the engine concludes, on real evidence
 
-The justification layer in this repository is **synthetic and labelled as
-such**. Every claim is tagged `provenance_tier: synthetic` and prefixed
-`SYN_`, and a test enforces that. OpenAlex records who cited whom but not
-what rests on what, so this layer cannot be derived from the bibliographic
-data, and inventing claims to attribute to a real clinical guidance document
-would be the fabrication this project exists to detect.
+The curated claims in `data/curated/hydroxychloroquine.yaml` each paraphrase
+a conclusion the cited work actually states, and record where it was read
+from. Retracting the Gautret study gives:
 
-The works, citations, retraction dates and lags are all real. The logical
-structure over them is illustrative until curation against the source
-documents replaces it.
+| Claim | Before | After |
+|---|---|---|
+| Hydroxychloroquine treats COVID-19 | holds | **loses support** |
+| HCQ does not reduce mortality | holds | holds |
+| HCQ does not improve clinical status | holds | holds |
+| **HCQ should not be used for COVID-19** | holds | **holds** |
+| COVID-19 can cause heart block in a child | flagged | flagged |
+| Dexamethasone reduces mortality | holds | holds |
+
+The fourth row is the point. The recommendation against hydroxychloroquine
+is the furthest conclusion downstream, and it is completely untouched,
+because it never rested on the retracted study. It rests on three
+independent randomised trials that found no benefit: RECOVERY, WHO
+Solidarity, and Coalition Covid-19 Brazil, through a justification that
+needs any two of the three. Anything propagating by citation distance would
+flag it; RIPPLE does not.
+
+The heart-block claim is flagged rather than broken. Both works supporting
+it are flagged retracted by OpenAlex and neither flag survives checking.
+
+### What is not curated
+
+The ESC guidance document is deliberately absent from the justification
+layer. It is in Europe PMC but not the open-access subset, so its full text
+cannot be read, and attributing claims to a clinical guidance document on
+the strength of its abstract would be invention. It appears in the graph
+only as a citing work, which is a fact the citation data supports.
+
+A synthetic fixture lives in `tests/fixtures/` to exercise lattice branches
+the real evidence base does not contain, such as circular support. It is
+never loaded into the committed store, and a test enforces that.
 
 ### What is different about it
 
@@ -221,7 +246,7 @@ A real clinical guidance document resting on retracted evidence:
 | Engine wired to the store | working, 20 tests |
 | HTTP API | working |
 | Graph explorer UI | working |
-| Justification layer | loader working; data is synthetic, curation pending |
+| Curated justification layer | 6 claims, 6 justifications, all sourced |
 | MCP tool surface | not started |
 
 ## Notes on scope and claims
