@@ -65,13 +65,56 @@ def test_esc_guidance_cites_it_439_days_after_retraction(actor: GraphActor):
     assert row["awareness"] == "unambiguous"
 
 
-def test_guidance_cites_more_than_one_retracted_work(actor: GraphActor):
-    n = actor.read(
+def test_guidance_retraction_facts_are_classified_not_counted(actor: GraphActor):
+    """OpenAlex flags three of this document's references as retracted.
+
+    Only one of those holds up as a substantive retraction. A second was
+    withdrawn as an accidental duplicate, which says nothing about whether
+    its findings are correct. The third has no retraction record in Crossref
+    at all and appears to have inherited the flag from the duplicate.
+
+    Reporting "cites three retracted works" would therefore overstate it by
+    a factor of three, which is exactly the failure mode this project is
+    built to catch, so the breakdown is pinned rather than the headline.
+    """
+    retracted = actor.read(
         "MATCH (d:Work {openalex_id: $d})-[:CITES]->(ref:Work) "
         "WHERE ref.is_retracted = true RETURN count(ref) AS n",
         {"d": ESC_GUIDANCE},
     )[0]["n"]
-    assert n == 3
+    substantive = actor.read(
+        "MATCH (d:Work {openalex_id: $d})-[:CITES]->(ref:Work)"
+        "-[:HAS_RETRACTION]->(re:RetractionEvent) "
+        "WHERE re.reason_class = 'SUBSTANTIVE' RETURN count(ref) AS n",
+        {"d": ESC_GUIDANCE},
+    )[0]["n"]
+    disputed = actor.read(
+        "MATCH (d:Work {openalex_id: $d})-[:CITES]->(ref:Work) "
+        "WHERE ref.openalex_flag_disputed = true RETURN count(ref) AS n",
+        {"d": ESC_GUIDANCE},
+    )[0]["n"]
+
+    assert retracted == 2, "two hold up as retractions"
+    assert substantive == 1, "only one impeaches its findings"
+    assert disputed == 1, "one OpenAlex flag has no Crossref record behind it"
+
+
+def test_openalex_false_positive_is_not_treated_as_retracted(actor: GraphActor):
+    row = actor.read(
+        "MATCH (w:Work {openalex_id: 'W3025220694'}) "
+        "RETURN w.is_retracted AS retracted, w.openalex_flag_disputed AS disputed"
+    )[0]
+    assert row["retracted"] is False
+    assert row["disputed"] is True
+
+
+def test_procedural_withdrawal_is_recorded_as_such(actor: GraphActor):
+    row = actor.read(
+        "MATCH (:Work {openalex_id: 'W4205843467'})-[:HAS_RETRACTION]->(re:RetractionEvent) "
+        "RETURN re.reason_class AS reason, re.retracted_on AS on"
+    )[0]
+    assert row["reason"] == "PROCEDURAL"
+    assert row["on"] == "2020-05-27"
 
 
 def test_exposure_is_reported_separately_from_loss_of_support(actor: GraphActor):
