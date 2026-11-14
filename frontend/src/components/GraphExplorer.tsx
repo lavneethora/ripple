@@ -5,10 +5,13 @@ import type { GraphEdge, GraphNode, StatusName } from "../types";
 
 cytoscape.use(dagre);
 
-/** Ids are precise but unreadable on a canvas, so display a short form. */
+/** Labels come from the curated file. Ids are the fallback for fixtures. */
 function displayLabel(data: GraphNode["data"]): string {
   if (data.kind === "justification") return data.label;
-  return data.label.replace(/^SYN_/, "").replace(/_/g, " ").toLowerCase();
+  if (/^(SYN_|W\d|CL_)/.test(data.label)) {
+    return data.label.replace(/^SYN_/, "").replace(/_/g, " ").toLowerCase();
+  }
+  return data.label;
 }
 
 const STATUS_COLOR: Record<StatusName, string> = {
@@ -84,8 +87,34 @@ const STYLE: cytoscape.StylesheetStyle[] = [
     style: {
       "background-color": "#2b1416",
       "border-color": "#f85149",
-      "border-width": 2.5,
-      color: "#f85149",
+      "border-width": 3,
+      color: "#ff9d96",
+      "font-weight": 700,
+    },
+  },
+  {
+    // The work under study. Everything in the scene turns on this node, so
+    // it is sized and lit to be found without hunting.
+    selector: "node.focal",
+    style: {
+      width: 150,
+      height: 46,
+      "font-size": 12,
+      "border-width": 3.5,
+      "overlay-color": "#f85149",
+      "overlay-opacity": 0.16,
+      "overlay-padding": 9,
+    },
+  },
+  {
+    // Briefly marks the nodes whose status just changed, so the eye lands on
+    // the consequence rather than scanning for it.
+    selector: "node.changed",
+    style: {
+      "border-width": 5,
+      "overlay-color": "#58a6ff",
+      "overlay-opacity": 0.3,
+      "overlay-padding": 11,
     },
   },
   {
@@ -122,11 +151,19 @@ interface Props {
   edges: GraphEdge[];
   onSelect: (id: string | null, kind: string | null) => void;
   highlight: string[];
+  focalId?: string;
 }
 
-export default function GraphExplorer({ nodes, edges, onSelect, highlight }: Props) {
+export default function GraphExplorer({
+  nodes,
+  edges,
+  onSelect,
+  highlight,
+  focalId,
+}: Props) {
   const container = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
+  const prevStatus = useRef<Map<string, string>>(new Map());
 
   // Build once. Later status changes update data in place so the layout does
   // not jump, which is what makes before/after readable as one scene.
@@ -176,20 +213,32 @@ export default function GraphExplorer({ nodes, edges, onSelect, highlight }: Pro
   useEffect(() => {
     const cy = cyRef.current;
     if (!cy) return;
+    const changed: string[] = [];
     cy.batch(() => {
       for (const n of nodes) {
         const el = cy.getElementById(n.data.id);
-        if (el.nonempty()) {
-          el.data("status", n.data.status);
-          el.data("retracted", n.data.retracted);
-        }
+        if (el.empty()) continue;
+        const before = prevStatus.current.get(n.data.id);
+        const after = n.data.status ?? "";
+        if (before !== undefined && before !== after) changed.push(n.data.id);
+        prevStatus.current.set(n.data.id, after);
+        el.data("status", after);
+        el.data("retracted", n.data.retracted);
       }
       for (const e of edges) {
         const el = cy.getElementById(e.data.id);
         if (el.nonempty()) el.data("dead", e.data.dead);
       }
+      if (focalId) cy.getElementById(focalId).addClass("focal");
     });
-  }, [nodes, edges]);
+
+    if (!changed.length) return;
+    const marked = cy.collection();
+    for (const id of changed) marked.merge(cy.getElementById(id));
+    marked.addClass("changed");
+    const timer = window.setTimeout(() => marked.removeClass("changed"), 1400);
+    return () => window.clearTimeout(timer);
+  }, [nodes, edges, focalId]);
 
   useEffect(() => {
     const cy = cyRef.current;
