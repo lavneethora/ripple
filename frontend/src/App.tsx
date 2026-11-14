@@ -4,9 +4,13 @@ import ClaimInspector from "./components/ClaimInspector";
 import { fetchScenario, propagate } from "./api";
 import type { PropagateResponse, Scenario, StatusName } from "./types";
 
+// Every status the engine can return must appear here. Omitting one drops
+// those claims from both the summary and the headline counts, so the totals
+// silently stop adding up.
 const SUMMARY_ORDER: { key: StatusName; label: string; tone: string }[] = [
   { key: "SUPPORTED", label: "Holds", tone: "ok" },
   { key: "SUPPORTED_WEAKENED", label: "Holds, weakened", tone: "warn" },
+  { key: "QUESTIONED", label: "Flagged for review", tone: "warn" },
   { key: "INDETERMINATE", label: "Cannot tell", tone: "unknown" },
   { key: "UNSUPPORTED_CIRCULAR", label: "Circular only", tone: "bad" },
   { key: "UNSUPPORTED", label: "Loses support", tone: "bad" },
@@ -46,7 +50,12 @@ export default function App() {
   const lost = result ? (result.summary.UNSUPPORTED ?? 0) : 0;
   const circular = result ? (result.summary.UNSUPPORTED_CIRCULAR ?? 0) : 0;
   const held = result
-    ? (result.summary.SUPPORTED ?? 0) + (result.summary.SUPPORTED_WEAKENED ?? 0)
+    ? (result.summary.SUPPORTED ?? 0) +
+      (result.summary.SUPPORTED_WEAKENED ?? 0) +
+      (result.summary.QUESTIONED ?? 0)
+    : 0;
+  const total = result
+    ? Object.values(result.summary).reduce((a, b) => a + b, 0)
     : 0;
 
   if (error) return <div className="err">{error}</div>;
@@ -128,8 +137,9 @@ export default function App() {
               </>
             )}
             <div className="split">
-              Of the conclusions modelled here, <b>{lost + circular}</b> actually
-              lose support and <b>{held}</b> survive on independent evidence.
+              Of the <b>{total}</b> conclusions modelled here,{" "}
+              <b>{lost + circular}</b> lose support and <b>{held}</b> still
+              stand on evidence the retraction does not touch.
             </div>
           </div>
         </div>
