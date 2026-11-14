@@ -15,9 +15,21 @@
 # attributing claims to a clinical guidance document on the strength of its
 # abstract would be invention.
 
+# Short labels for the graph canvas. Ids are precise and unreadable; full
+# titles do not fit. These are the names a reader would use out loud.
+work_labels:
+  W3010930696: Gautret 2020
+  W3091868035: RECOVERY trial
+  W3110466220: WHO Solidarity
+  W3044118599: Coalition Brazil
+  W3042270788: RECOVERY, dexamethasone
+  W3025220694: Case report
+  W4205843467: Case report, withdrawn duplicate
+
 claims:
   # --- the claim that rests on the retracted study -----------------------
   - id: CL_HCQ_TREATS_COVID
+    short: HCQ treats COVID-19
     text: >-
       Hydroxychloroquine, given with azithromycin, is an effective treatment
       for COVID-19.
@@ -33,6 +45,7 @@ claims:
 
   # --- the claims that replaced it ---------------------------------------
   - id: CL_HCQ_NO_MORTALITY_BENEFIT
+    short: No mortality benefit
     text: >-
       Hydroxychloroquine does not reduce mortality in patients hospitalised
       with COVID-19.
@@ -42,6 +55,7 @@ claims:
     source_basis: abstract
 
   - id: CL_HCQ_NO_CLINICAL_BENEFIT
+    short: No clinical benefit
     text: >-
       Hydroxychloroquine, alone or with azithromycin, does not improve
       clinical status at 15 days in mild-to-moderate COVID-19.
@@ -51,6 +65,7 @@ claims:
     source_basis: abstract
 
   - id: CL_HCQ_NOT_INDICATED
+    short: Do not use HCQ for COVID-19
     text: >-
       Hydroxychloroquine should not be used as a treatment for COVID-19.
     kind: recommendation
@@ -59,6 +74,7 @@ claims:
 
   # --- a claim touching the procedurally withdrawn work ------------------
   - id: CL_COVID_HEART_BLOCK_CHILD
+    short: COVID can cause heart block in a child
     text: >-
       COVID-19 can induce transient complete heart block in a child.
     kind: finding
@@ -68,6 +84,7 @@ claims:
 
   # --- an unrelated control ----------------------------------------------
   - id: CL_DEXAMETHASONE_REDUCES_MORTALITY
+    short: Dexamethasone reduces mortality
     text: >-
       Dexamethasone reduces 28-day mortality in hospitalised COVID-19
       patients receiving respiratory support.
