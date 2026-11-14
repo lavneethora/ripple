@@ -1,0 +1,153 @@
+# Curated justification layer: the hydroxychloroquine evidence base.
+#
+# Every claim below paraphrases a conclusion that the cited work actually
+# states, and records where that was read from. Nothing here is inferred from
+# a citation edge, because a citation says who pointed at whom and not what
+# rests on what.
+#
+# source_basis records what was actually read for each claim:
+#   abstract  the work's abstract, retrieved from OpenAlex
+#   title     only the title was machine-readable
+#   notice    a publisher retraction or withdrawal notice
+#
+# The ESC guidance (W3216235612) is deliberately absent. It is in Europe PMC
+# but not the open-access subset, so its full text cannot be read, and
+# attributing claims to a clinical guidance document on the strength of its
+# abstract would be invention.
+
+claims:
+  # --- the claim that rests on the retracted study -----------------------
+  - id: CL_HCQ_TREATS_COVID
+    text: >-
+      Hydroxychloroquine, given with azithromycin, is an effective treatment
+      for COVID-19.
+    kind: efficacy
+    provenance_tier: curated
+    reported_by: [W3010930696]
+    source_basis: title
+    note: >-
+      This work's abstract is not machine-readable, so the claim is taken
+      from its title, "Hydroxychloroquine and azithromycin as a treatment of
+      COVID-19: results of an open-label non-randomized clinical trial". The
+      claim is stated no more specifically than the title supports.
+
+  # --- the claims that replaced it ---------------------------------------
+  - id: CL_HCQ_NO_MORTALITY_BENEFIT
+    text: >-
+      Hydroxychloroquine does not reduce mortality in patients hospitalised
+      with COVID-19.
+    kind: efficacy
+    provenance_tier: curated
+    reported_by: [W3091868035, W3110466220]
+    source_basis: abstract
+
+  - id: CL_HCQ_NO_CLINICAL_BENEFIT
+    text: >-
+      Hydroxychloroquine, alone or with azithromycin, does not improve
+      clinical status at 15 days in mild-to-moderate COVID-19.
+    kind: efficacy
+    provenance_tier: curated
+    reported_by: [W3044118599]
+    source_basis: abstract
+
+  - id: CL_HCQ_NOT_INDICATED
+    text: >-
+      Hydroxychloroquine should not be used as a treatment for COVID-19.
+    kind: recommendation
+    provenance_tier: curated
+    source_basis: derived
+
+  # --- a claim touching the procedurally withdrawn work ------------------
+  - id: CL_COVID_HEART_BLOCK_CHILD
+    text: >-
+      COVID-19 can induce transient complete heart block in a child.
+    kind: finding
+    provenance_tier: curated
+    reported_by: [W3025220694]
+    source_basis: abstract
+
+  # --- an unrelated control ----------------------------------------------
+  - id: CL_DEXAMETHASONE_REDUCES_MORTALITY
+    text: >-
+      Dexamethasone reduces 28-day mortality in hospitalised COVID-19
+      patients receiving respiratory support.
+    kind: efficacy
+    provenance_tier: curated
+    reported_by: [W3042270788]
+    source_basis: abstract
+
+justifications:
+  # Rests on one open-label non-randomised study, and nothing else.
+  - id: J_HCQ_TREATS_COVID
+    consequent: CL_HCQ_TREATS_COVID
+    antecedents: [W3010930696]
+    rule: single_nonrandomised_study
+    confidence: 0.30
+    provenance_tier: curated
+    note: >-
+      Low confidence on its own terms: an open-label, non-randomised trial of
+      36 patients is weak evidence of efficacy even before the retraction.
+
+  # Two of three independent randomised trials. This is the m-of-n case, and
+  # it is real: three separately funded, separately run trials reported the
+  # same null result.
+  - id: J_HCQ_NO_MORTALITY_RCTS
+    consequent: CL_HCQ_NO_MORTALITY_BENEFIT
+    antecedents: [W3091868035, W3110466220, W3044118599]
+    threshold: 2
+    rule: two_independent_rcts
+    confidence: 0.95
+    provenance_tier: curated
+    sources:
+      - work: W3091868035
+        quoted: >-
+          those who received hydroxychloroquine did not have a lower
+          incidence of death at 28 days than those who received usual care
+      - work: W3110466220
+        quoted: >-
+          had little or no effect on hospitalized patients with Covid-19, as
+          indicated by overall mortality
+      - work: W3044118599
+        quoted: >-
+          did not improve clinical status at 15 days as compared with
+          standard care
+
+  - id: J_HCQ_NO_CLINICAL_BENEFIT
+    consequent: CL_HCQ_NO_CLINICAL_BENEFIT
+    antecedents: [W3044118599]
+    rule: single_rct
+    confidence: 0.85
+    provenance_tier: curated
+
+  # The recommendation needs only one of the two null findings to stand, and
+  # critically it never depended on the retracted study at all.
+  - id: J_HCQ_NOT_INDICATED
+    consequent: CL_HCQ_NOT_INDICATED
+    antecedents: [CL_HCQ_NO_MORTALITY_BENEFIT, CL_HCQ_NO_CLINICAL_BENEFIT]
+    threshold: 1
+    rule: absence_of_demonstrated_benefit
+    confidence: 0.90
+    provenance_tier: curated
+
+  # Both of these are flagged retracted by OpenAlex. Neither flag survives
+  # checking: the first has no Crossref retraction record at all, and the
+  # second was withdrawn as an accidental duplicate of the first, which says
+  # nothing about whether the finding is correct. Either one suffices.
+  - id: J_HEART_BLOCK_CASE
+    consequent: CL_COVID_HEART_BLOCK_CHILD
+    antecedents: [W3025220694, W4205843467]
+    threshold: 1
+    rule: case_report_with_duplicate
+    confidence: 0.55
+    provenance_tier: curated
+    note: >-
+      A single case report is weak evidence, which the confidence reflects.
+      The point of including it is that naively trusting is_retracted would
+      mark this claim broken on two counts, and both counts are wrong.
+
+  - id: J_DEXAMETHASONE
+    consequent: CL_DEXAMETHASONE_REDUCES_MORTALITY
+    antecedents: [W3042270788]
+    rule: single_large_rct
+    confidence: 0.92
+    provenance_tier: curated
