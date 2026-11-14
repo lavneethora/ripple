@@ -173,10 +173,9 @@ machine-extracted support.
 
 ## AI assistance
 
-Built with AI coding assistance (Claude Code), used for the implementation,
-the test suite, the tooling scripts, and research into what this build of
-Relate actually supports. Per the hackathon rules, the author remains
-responsible for the result.
+Built with AI coding assistance (Claude Code): implementation, tests,
+tooling scripts, and research into what this build of Relate actually
+supports.
 
 ## License
 
