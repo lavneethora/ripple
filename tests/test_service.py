@@ -336,3 +336,19 @@ def test_unrelated_curated_claim_is_untouched(after):
 
 def test_only_one_curated_claim_loses_support(after):
     assert after.summary == {"SUPPORTED": 4, "QUESTIONED": 1, "UNSUPPORTED": 1}
+
+
+def test_claims_and_works_carry_readable_labels(actor: GraphActor):
+    """The canvas shows these, so a missing one degrades to a raw id."""
+    claims = actor.read("MATCH (c:Claim) RETURN c.id AS id, c.short AS short")
+    for row in claims:
+        assert row["short"], f"{row['id']} has no short label"
+        assert row["short"] != row["id"], f"{row['id']} fell back to its id"
+
+    labelled = actor.read(
+        "MATCH (w:Work)-[:ANTECEDENT_OF]->(:Justification) "
+        "RETURN DISTINCT w.openalex_id AS id, w.short AS short"
+    )
+    assert labelled, "no works feed any justification"
+    for row in labelled:
+        assert row["short"], f"{row['id']} has no short label"
