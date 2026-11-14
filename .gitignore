@@ -9,3 +9,8 @@ dist/
 
 # Cached raw API responses. Large, regenerable, and not the committed store.
 data/raw/
+
+# Scratch copies of the committed store. Propagation mutates a store,
+# so the committed artifact is treated as read-only input and every run
+# works on a copy.
+data/.work/
