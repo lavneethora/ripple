@@ -81,8 +81,20 @@ class _PinnedConnection:
         self._closed = True
         # close() must also run on the owning thread, or it raises WrongThread
         # and leaves the connection closed for every thread.
-        self._executor.submit(self._conn.close).result()
-        self._executor.shutdown(wait=True)
+        #
+        # At interpreter shutdown the executor may already be gone, so
+        # submitting raises "cannot schedule new futures after shutdown".
+        # The process is exiting and the store is checkpointed on commit, so
+        # failing to close cleanly here is not worth an exception that masks
+        # whatever actually ended the program.
+        try:
+            self._executor.submit(self._conn.close).result()
+        except RuntimeError:
+            pass
+        try:
+            self._executor.shutdown(wait=True)
+        except RuntimeError:
+            pass
 
 
 class GraphActor:
