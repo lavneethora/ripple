@@ -61,6 +61,7 @@ export interface PropagateResponse {
 export interface Scenario {
   focal: {
     id: string;
+    work_id: string;
     title: string;
     doi: string;
     retracted_on: string;
@@ -101,4 +102,30 @@ export interface SupportJustification {
   n_in: number;
   n_out: number;
   n_retracted: number;
+}
+
+export interface WorkDetail {
+  work_id: string;
+  doi: string | null;
+  title: string;
+  short: string;
+  type: string;
+  venue: string | null;
+  published: string | null;
+  cited_by_count: number;
+  is_retracted: boolean;
+  flag_disputed: boolean;
+  retracted_on: string | null;
+  reason_class: string | null;
+  reason_text: string | null;
+  notice_doi: string | null;
+  authors: string[];
+  supports: {
+    claim_id: string;
+    short: string;
+    status: StatusName | null;
+    threshold: number;
+    justification: string;
+  }[];
+  cites_retracted_work: { lag: number | null; awareness: string } | null;
 }
