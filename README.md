@@ -191,6 +191,43 @@ retracted**. Claims are rectangles, works are smaller rectangles, and the
 diamonds between them are justifications labelled with their threshold.
 Click any claim to see what holds it up.
 
+### Ask it from an agent
+
+The same engine is exposed over MCP, so a coding agent can query it directly
+rather than through the browser. Six tools: `scenario`, `what_still_holds`,
+`explain_claim`, `post_retraction_citations`, `classify_retraction_notice`
+and `list_claims`.
+
+See what an agent gets back:
+
+```bash
+./.venv/bin/python scripts/mcp_demo.py
+```
+
+To wire it into Claude Code or any MCP client:
+
+```json
+{
+  "mcpServers": {
+    "ripple": {
+      "command": "/absolute/path/to/ripple/.venv/bin/python",
+      "args": ["/absolute/path/to/ripple/backend/ripple/mcp_server.py"],
+      "env": { "PYTHONPATH": "/absolute/path/to/ripple/backend" }
+    }
+  }
+}
+```
+
+Then ask it "which of these conclusions still stand?" and it answers from the
+graph. The server's instructions tell the agent the two things it must not
+get wrong: that a citation is not a justification, so exposure and loss of
+support are different numbers, and that a procedural retraction does not mean
+the work is wrong.
+
+Relate also ships its own MCP server (`relate serve --mcp stdio`), so the
+store in this repository can be queried as a raw graph alongside RIPPLE's
+reasoning tools.
+
 ## Where the data lives
 
 `data/ripple-retractions/` is the persistent Relate directory store,
@@ -247,7 +284,7 @@ A real clinical guidance document resting on retracted evidence:
 | HTTP API | working |
 | Graph explorer UI | working |
 | Curated justification layer | 6 claims, 6 justifications, all sourced |
-| MCP tool surface | not started |
+| MCP tool surface | working, 10 tests over stdio |
 
 ## Notes on scope and claims
 
