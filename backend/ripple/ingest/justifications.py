@@ -16,6 +16,7 @@ from typing import Any
 import yaml
 
 from ripple.graph.queries import (
+    Q_SET_WORK_LABELS,
     Q_UPSERT_ANTECEDENTS_CLAIM,
     Q_UPSERT_ANTECEDENTS_WORK,
     Q_UPSERT_CLAIMS,
@@ -119,6 +120,8 @@ def load(actor, path: Path, *, created_on: str = "2026-11-13") -> LoadReport:
             # UNKNOWN marks a belief the system has not adjudicated, which is
             # what separates "we cannot tell" from "it does not hold".
             "label": c.get("label", "IN"),
+            # A readable name for the canvas. Falls back to the id.
+            "short": c.get("short") or c["id"],
         }
         for c in claims
     ]
@@ -182,5 +185,12 @@ def load(actor, path: Path, *, created_on: str = "2026-11-13") -> LoadReport:
     if claim_edges:
         actor.write(Q_UPSERT_ANTECEDENTS_CLAIM, {"rows": claim_edges})
     report.antecedent_edges = len(work_edges) + len(claim_edges)
+
+    label_rows = [
+        {"work_id": wid, "short": short}
+        for wid, short in sorted((data.get("work_labels") or {}).items())
+    ]
+    if label_rows:
+        actor.write(Q_SET_WORK_LABELS, {"rows": label_rows})
 
     return report

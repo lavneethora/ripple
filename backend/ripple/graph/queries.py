@@ -187,7 +187,8 @@ ORDER BY n DESC
 
 Q_RETRACTION_EVENT: Final[str] = """
 MATCH (w:Work {openalex_id: $work_id})-[:HAS_RETRACTION]->(re:RetractionEvent)
-RETURN re.id AS id, re.retracted_on AS retracted_on, re.valid_to_day AS valid_to_day,
+RETURN re.id AS id, w.openalex_id AS work_id,
+       re.retracted_on AS retracted_on, re.valid_to_day AS valid_to_day,
        re.announced_day AS announced_day, re.notice_doi AS notice_doi,
        re.reason_class AS reason_class, re.source AS source,
        w.title AS title, w.doi AS doi, w.cited_by_count AS cited_by_count
@@ -199,6 +200,7 @@ Q_UPSERT_CLAIMS: Final[str] = """
 UNWIND $rows AS row
 MERGE (c:Claim {id: row.id})
 SET c.text = row.text,
+    c.short = row.short,
     c.kind = row.kind,
     c.provenance_tier = row.provenance_tier,
     c.label = row.label
@@ -253,4 +255,12 @@ Q_MARK_RETRACTED_OUT: Final[str] = """
 MATCH (w:Work {openalex_id: $work_id})
 SET w.label = 'OUT', w.is_retracted = true
 RETURN w.openalex_id AS id, w.label AS label
+"""
+
+
+Q_SET_WORK_LABELS: Final[str] = """
+UNWIND $rows AS row
+MATCH (w:Work {openalex_id: row.work_id})
+SET w.short = row.short
+RETURN count(w) AS n
 """
