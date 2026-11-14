@@ -24,6 +24,7 @@ from ripple.graph.queries import (
     Q_RETRACTION_EVENT,
     Q_WRITEBACK_STATUS,
 )
+from ripple.schema.model import ReasonClass
 from ripple.tms.engine import (
     Boundary,
     Justification,
@@ -72,13 +73,35 @@ class PropagationResult:
         return None
 
 
+def impeaches(antecedent: dict[str, Any]) -> bool:
+    """Whether this antecedent's retraction should remove its support.
+
+    Only a substantive retraction does. Roughly a third of real retractions
+    are procedural, and this dataset contains one: a case report withdrawn as
+    an accidental duplicate of an article still published elsewhere. Nothing
+    in that notice bears on whether the finding is correct.
+
+    An UNKNOWN reason also does not impeach. Declaring a conclusion
+    unsupported because of a reason nobody has read would be the overreach
+    this project exists to avoid, so it only flags the dependent instead.
+    """
+    return bool(antecedent.get("retracted")) and antecedent.get(
+        "reason_class"
+    ) == ReasonClass.SUBSTANTIVE.value
+
+
+def questions_dependents(antecedent: dict[str, Any]) -> bool:
+    """A retraction that does not impeach still warrants a flag."""
+    return bool(antecedent.get("retracted")) and not impeaches(antecedent)
+
+
 def _boundary_from_row(antecedent: dict[str, Any]) -> Boundary | None:
     """Map a stored belief's label onto a fixpoint boundary condition.
 
-    A retracted work is OUT regardless of its stored label, so a store that
-    was never relabelled still produces the right answer.
+    A substantively retracted work is OUT regardless of its stored label, so
+    a store that was never relabelled still produces the right answer.
     """
-    if antecedent.get("retracted"):
+    if impeaches(antecedent):
         return Boundary.OUT
     label = antecedent.get("label")
     if label == "OUT":
@@ -98,12 +121,15 @@ def pull_projection(actor, scope_ids: Iterable[str]) -> Projection:
     justifications: list[Justification] = []
     boundary: dict[str, Boundary] = {}
     consequents: set[str] = set()
+    flagged: set[str] = set()
 
     for row in rows:
         antecedent_ids: list[str] = []
         for antecedent in row["antecedents"]:
             bid = antecedent["id"]
             antecedent_ids.append(bid)
+            if questions_dependents(antecedent):
+                flagged.add(row["consequent"])
             fixed = _boundary_from_row(antecedent)
             if fixed is not None:
                 # OUT wins over IN: a retracted belief stays out even if some
@@ -128,7 +154,12 @@ def pull_projection(actor, scope_ids: Iterable[str]) -> Projection:
     for consequent in consequents:
         boundary.pop(consequent, None)
 
-    return Projection(justifications, boundary=boundary, scope=scope)
+    projection = Projection(justifications, boundary=boundary, scope=scope)
+    # Carried alongside rather than inside the engine: the fixpoint decides
+    # what holds, and this records which survivors rest on a work that was
+    # retracted for a reason that does not impeach it.
+    projection.flagged_by_non_impeaching_retraction = flagged  # type: ignore[attr-defined]
+    return projection
 
 
 def prior_support_counts(projection: Projection) -> dict[str, int]:
@@ -170,10 +201,11 @@ def propagate(
     projection = pull_projection(actor, scope)
     prior = prior_support_counts(projection)
 
+    auto_flagged = getattr(projection, "flagged_by_non_impeaching_retraction", set())
     verdicts = classify(
         projection,
         prior_support=prior,
-        questioned=questioned,
+        questioned=set(questioned) | set(auto_flagged),
         retracted=[retracted_work] if retracted_work else [],
     )
 

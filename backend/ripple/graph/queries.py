@@ -48,12 +48,14 @@ Q_PULL_PROJECTION: Final[str] = """
 MATCH (j:Justification)-[:SUPPORTS]->(c:Claim)
 WHERE c.id IN $scope_ids
 MATCH (a)-[ae:ANTECEDENT_OF]->(j)
+OPTIONAL MATCH (a)-[:HAS_RETRACTION]->(re:RetractionEvent)
 WITH j, c, collect({
         id: coalesce(a.id, a.openalex_id),
         kind: head(labels(a)),
         role: ae.role,
         label: a.label,
-        retracted: coalesce(a.is_retracted, false)
+        retracted: coalesce(a.is_retracted, false),
+        reason_class: re.reason_class
      }) AS antecedents
 RETURN j.id              AS jid,
        j.threshold       AS threshold,
