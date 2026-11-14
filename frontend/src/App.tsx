@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import GraphExplorer from "./components/GraphExplorer";
 import ClaimInspector from "./components/ClaimInspector";
+import WorkInspector from "./components/WorkInspector";
 import { fetchScenario, propagate } from "./api";
 import type { PropagateResponse, Scenario, StatusName } from "./types";
 
@@ -22,6 +23,7 @@ export default function App() {
   const [retracted, setRetracted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
+  const [selectedKind, setSelectedKind] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -116,8 +118,12 @@ export default function App() {
             <GraphExplorer
               nodes={result.graph.nodes}
               edges={result.graph.edges}
-              onSelect={(id) => setSelected(id)}
+              onSelect={(id, kind) => {
+                setSelected(id);
+                setSelectedKind(kind);
+              }}
               highlight={highlight}
+              focalId={scenario?.focal.work_id}
             />
           )}
 
@@ -155,7 +161,11 @@ export default function App() {
               </div>
             ))}
           </div>
-          <ClaimInspector verdict={verdict} />
+          {selectedKind === "work" && selected ? (
+            <WorkInspector workId={selected} epoch={result?.epoch ?? 0} />
+          ) : (
+            <ClaimInspector verdict={verdict} />
+          )}
           <div className="legend">
             <div className="rows">
             <h4>Status</h4>

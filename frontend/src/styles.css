@@ -160,3 +160,23 @@ body {
   color: var(--faint); font-weight: 600; margin: 18px 0 9px;
 }
 .err { color: var(--bad); padding: 20px; font-family: var(--mono); font-size: 13px; }
+
+/* --- work inspector --- */
+.kv { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.kv > div { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; }
+.kv span { color: var(--faint); flex-shrink: 0; }
+.kv b { color: var(--text); font-weight: 600; text-align: right; }
+
+a.doi {
+  display: inline-block; font-family: var(--mono); font-size: 11px;
+  color: var(--accent); text-decoration: none; word-break: break-all;
+  padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--panel-2);
+}
+a.doi:hover { border-color: var(--accent); }
+
+.reason {
+  font-size: 12px; line-height: 1.6; color: var(--dim);
+  padding: 10px 12px; border-radius: 7px; background: var(--panel-2);
+  border-left: 3px solid var(--line);
+}
