@@ -130,6 +130,24 @@ That prints what was believed while the study still stood, what the engine
 derives once the retraction is known, and ten checks covering every branch of
 the status lattice. It runs on a copy, so the committed store is unchanged.
 
+### Run the app
+
+Two servers. The API owns the Relate connection; the browser never touches
+the store.
+
+```bash
+./.venv/bin/python -m uvicorn ripple.api.main:app --app-dir backend --port 8010
+```
+
+```bash
+npm install --prefix frontend && npm run dev --prefix frontend
+```
+
+Then open http://localhost:5180 and toggle **Study stands** / **Study
+retracted**. Claims are rectangles, works are smaller rectangles, and the
+diamonds between them are justifications labelled with their threshold.
+Click any claim to see what holds it up.
+
 ## Where the data lives
 
 `data/ripple-retractions/` is the persistent Relate directory store,
@@ -177,9 +195,10 @@ A real clinical guidance document resting on retracted evidence:
 | Graph schema and epoch-day model | working, 17 tests |
 | OpenAlex and Crossref seeding | working |
 | Seeded store in this repo | committed, 4,767 nodes |
-| Engine wired to the store | working, 18 tests |
+| Engine wired to the store | working, 20 tests |
+| HTTP API | working |
+| Graph explorer UI | working |
 | Justification layer | loader working; data is synthetic, curation pending |
-| Graph explorer UI | not started |
 | MCP tool surface | not started |
 
 ## Notes on scope and claims
