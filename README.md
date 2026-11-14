@@ -45,6 +45,19 @@ claim to defensibility:
 > 3,412 works cite this; 1,342 after the retraction. **27 conclusions actually
 > lose support, 61 survive on independent corroboration, 9 are indeterminate.**
 
+### Honest caveat on the current data
+
+The justification layer in this repository is **synthetic and labelled as
+such**. Every claim is tagged `provenance_tier: synthetic` and prefixed
+`SYN_`, and a test enforces that. OpenAlex records who cited whom but not
+what rests on what, so this layer cannot be derived from the bibliographic
+data, and inventing claims to attribute to a real clinical guidance document
+would be the fabrication this project exists to detect.
+
+The works, citations, retraction dates and lags are all real. The logical
+structure over them is illustrative until curation against the source
+documents replaces it.
+
 ### What is different about it
 
 Relate's own cookbook can already record that a belief changed and query what
@@ -107,6 +120,16 @@ Run the test suite, including the truth maintenance correctness tests:
 ./.venv/bin/python -m pytest -q
 ```
 
+See a real retraction re-derived end to end against the committed store:
+
+```bash
+./.venv/bin/python scripts/changing_mind_test.py
+```
+
+That prints what was believed while the study still stood, what the engine
+derives once the retraction is known, and ten checks covering every branch of
+the status lattice. It runs on a copy, so the committed store is unchanged.
+
 ## Where the data lives
 
 `data/ripple-retractions/` is the persistent Relate directory store,
@@ -153,8 +176,9 @@ A real clinical guidance document resting on retracted evidence:
 | Truth maintenance engine | working, 27 tests |
 | Graph schema and epoch-day model | working, 17 tests |
 | OpenAlex and Crossref seeding | working |
-| Seeded store in this repo | committed, 4,741 nodes |
-| Curated justification layer | in progress |
+| Seeded store in this repo | committed, 4,767 nodes |
+| Engine wired to the store | working, 18 tests |
+| Justification layer | loader working; data is synthetic, curation pending |
 | Graph explorer UI | not started |
 | MCP tool surface | not started |
 
