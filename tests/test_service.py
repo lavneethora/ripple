@@ -196,3 +196,30 @@ def test_synthetic_fixtures_are_tagged_as_such(actor: GraphActor):
     assert set(tiers) == {"synthetic"}, (
         "the fixture must stay tagged synthetic until real curation replaces it"
     )
+
+
+# --- label round-tripping ---
+
+def test_indeterminate_round_trips_as_unknown(actor: GraphActor):
+    """Repeated propagation must not quietly erase 'we cannot tell'.
+
+    The stored label feeds the next propagation, so collapsing INDETERMINATE
+    to OUT is permanent: the belief is treated as refuted from then on and
+    the status can never reappear.
+    """
+    first = propagate(actor, retracted_work=FOCAL, epoch=2)
+    assert first.status_of("SYN_DEPENDS_ON_UNKNOWN") is Status.INDETERMINATE
+
+    label = actor.read(
+        "MATCH (c:Claim {id:'SYN_NOT_ADJUDICATED'}) RETURN c.label AS label"
+    )[0]["label"]
+    assert label == "UNKNOWN", "an unadjudicated belief was relabelled"
+
+    second = propagate(actor, retracted_work=FOCAL, epoch=3)
+    assert second.summary == first.summary
+
+
+def test_repeated_propagation_is_stable(actor: GraphActor):
+    """Running the engine N times must not drift the store's conclusions."""
+    summaries = [propagate(actor, retracted_work=FOCAL, epoch=i).summary for i in range(2, 7)]
+    assert all(s == summaries[0] for s in summaries), summaries

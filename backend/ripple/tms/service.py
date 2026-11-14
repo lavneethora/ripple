@@ -37,6 +37,22 @@ from ripple.tms.engine import (
 HOLDS = frozenset({Status.SUPPORTED, Status.SUPPORTED_WEAKENED, Status.QUESTIONED})
 
 
+def label_for(status: Status) -> str:
+    """Map a verdict onto the three-valued label stored on the node.
+
+    INDETERMINATE must round-trip as UNKNOWN rather than collapsing to OUT.
+    Flattening it loses the distinction between "we assessed this and it does
+    not hold" and "we have not assessed this", and because the label is the
+    input to the next propagation, the loss is permanent: the belief is
+    treated as refuted from then on and INDETERMINATE can never reappear.
+    """
+    if status in HOLDS:
+        return "IN"
+    if status is Status.INDETERMINATE:
+        return "UNKNOWN"
+    return "OUT"
+
+
 @dataclass
 class PropagationResult:
     epoch: int
@@ -169,7 +185,7 @@ def propagate(
         rows = [
             {
                 "claim_id": v.belief_id,
-                "label": "IN" if v.status in HOLDS else "OUT",
+                "label": label_for(v.status),
                 "status": v.status.value,
                 "reason_code": v.reason_code,
                 "epoch": epoch,
