@@ -1,0 +1,58 @@
+# Curated retraction reasons, with the source for each.
+#
+# Why this file exists: Crossref records that a retraction happened and when,
+# but almost never why. Of the three works OpenAlex flagged in this dataset,
+# the machine classifier could read a reason for exactly one, from a
+# withdrawal notice that happened to be indexed as an abstract.
+#
+# That matters because an unclassified reason deliberately does not impeach
+# the findings: asserting that a conclusion is unsupported on the strength of
+# a reason nobody has read is the overreach this project exists to avoid. So
+# where the reason is publicly documented in prose, it is recorded here by
+# hand with its source, rather than guessed or left to weaken the result.
+#
+# Every entry must cite a source a reader can check. No entry may be added
+# from inference about what a retraction "probably" means.
+
+reasons:
+  - work_id: W3010930696
+    doi: 10.1016/j.ijantimicag.2020.105949
+    reason_class: SUBSTANTIVE
+    summary: >-
+      Retracted by a joint statement from the International Society of
+      Antimicrobial Chemotherapy and Elsevier, which concluded the article did
+      not meet the Society's expected standard, citing the absence of adequate
+      explanation for the inclusion criteria and the triage of patients, and
+      concerns over whether the work met the standards of the Society's
+      publishing ethics.
+    source_type: publisher_notice
+    source: https://doi.org/10.1016/j.ijantimicag.2020.106063
+    retracted_on: "2020-07-01"
+    # Concerns bear on how the study was conducted and reported, so
+    # conclusions resting on its result lose that support.
+    impeaches_findings: true
+
+  - work_id: W4205843467
+    doi: 10.1016/j.jaccas.2020.05.030
+    reason_class: PROCEDURAL
+    summary: >-
+      Withdrawn by the publisher as an accidental duplication of an article
+      already published at 10.1016/j.jaccas.2020.05.023. Nothing in the notice
+      bears on whether the findings are correct, and the same content remains
+      published at the original DOI.
+    source_type: publisher_notice
+    source: https://doi.org/10.1016/j.jaccas.2020.05.030
+    retracted_on: "2020-05-27"
+    impeaches_findings: false
+
+# Works OpenAlex flags as retracted where no retraction exists. Recorded so
+# the disagreement is visible rather than silently dropped.
+disputed_flags:
+  - work_id: W3025220694
+    doi: 10.1016/j.jaccas.2020.05.023
+    note: >-
+      Flagged is_retracted by OpenAlex. Crossref holds no retraction or update
+      record for this DOI. What was withdrawn is a duplicate of this article
+      published at 10.1016/j.jaccas.2020.05.030, and this original appears to
+      have inherited the flag. Treated as not retracted.
+    checked_on: "2026-11-13"
