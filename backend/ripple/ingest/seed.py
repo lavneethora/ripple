@@ -55,6 +55,16 @@ class SeedPlan:
 
     focal_work: str = "W3010930696"       # Gautret 2020, hydroxychloroquine
     deep_dive: str = "W3216235612"        # ESC COVID-19 guidance, 2021-09-13
+    #: Works the curated claims cite. Pulled explicitly rather than hoped for,
+    #: since a curated antecedent missing from the store aborts the load.
+    evidence_works: tuple[str, ...] = (
+        "W3091868035",  # RECOVERY: HCQ in hospitalised Covid-19, NEJM 2020
+        "W3110466220",  # WHO Solidarity interim results, NEJM 2020
+        "W3044118599",  # Coalition Covid-19 Brazil: HCQ +/- azithromycin
+        "W3042270788",  # RECOVERY: dexamethasone, as an unrelated control
+        "W3025220694",  # Paediatric heart block case report (original)
+        "W4205843467",  # The withdrawn duplicate of it
+    )
     n_citing_reviews: int = 30
     # Only works published after the retraction. Without this the most-cited
     # citers are all pre-retraction and the store shows none of the effect.
@@ -266,6 +276,14 @@ def seed(
         report.skipped_over_budget += max(0, len(deep_dive_refs) - len(wanted))
         for work in fetch_works_batch(fetcher, wanted):
             collected.setdefault(short_id(work["id"]), work)
+
+    # --- works the curated justifications depend on ---
+    if plan.evidence_works:
+        missing = [w for w in plan.evidence_works if w not in collected]
+        if missing:
+            say(f"Fetching {len(missing)} works cited by curated claims")
+            for work in fetch_works_batch(fetcher, missing):
+                collected.setdefault(short_id(work["id"]), work)
 
     if len(collected) > plan.max_works:
         raise RuntimeError(f"{len(collected)} works exceeds budget {plan.max_works}")
