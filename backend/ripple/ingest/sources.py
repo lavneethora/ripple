@@ -10,6 +10,7 @@ for an email address in the query string; this deliberately does not use it.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import time
 from dataclasses import dataclass, field
@@ -23,11 +24,17 @@ CROSSREF = "https://api.crossref.org"
 USER_AGENT = "ripple-hackathon/0.1 (graph research prototype)"
 
 # Only what the schema stores, so payloads stay small.
-WORK_FIELDS = (
+_WORK_FIELDS_UNVERSIONED = (
     "id,doi,display_name,publication_date,publication_year,type,"
     "is_retracted,cited_by_count,referenced_works,authorships,"
-    "primary_location,referenced_works_count"
+    "primary_location,referenced_works_count,abstract_inverted_index"
 )
+WORK_FIELDS = _WORK_FIELDS_UNVERSIONED
+
+#: Cache keys embed a digest of the requested field set. Without it, widening
+#: WORK_FIELDS silently returns rows cached before the new field existed, and
+#: the absence looks like missing upstream data rather than a stale cache.
+FIELDS_TAG = hashlib.sha1(WORK_FIELDS.encode()).hexdigest()[:8]
 
 
 class RateLimiter:
@@ -94,7 +101,7 @@ def short_id(openalex_id: str) -> str:
 
 def fetch_work(fetcher: Fetcher, work_id: str) -> dict[str, Any]:
     wid = short_id(work_id)
-    return fetcher.get(f"{OPENALEX}/works/{wid}", {"select": WORK_FIELDS}, key=f"work_{wid}")
+    return fetcher.get(f"{OPENALEX}/works/{wid}", {"select": WORK_FIELDS}, key=f"work_{wid}_{FIELDS_TAG}")
 
 
 def fetch_works_batch(fetcher: Fetcher, work_ids: list[str]) -> list[dict[str, Any]]:
@@ -106,7 +113,7 @@ def fetch_works_batch(fetcher: Fetcher, work_ids: list[str]) -> list[dict[str, A
         payload = fetcher.get(
             f"{OPENALEX}/works",
             {"filter": f"openalex_id:{'|'.join(chunk)}", "per-page": 50, "select": WORK_FIELDS},
-            key=f"batch_{chunk[0]}_{len(chunk)}",
+            key=f"batch_{chunk[0]}_{len(chunk)}_{FIELDS_TAG}",
         )
         out.extend(payload.get("results", []))
     return out
@@ -148,7 +155,7 @@ def iter_citing_works(
             {"filter": filt, "per-page": per_page, "page": page,
              "sort": sort, "select": WORK_FIELDS},
             key=f"citing_{wid}_{work_type or 'any'}_{sort}"
-                f"_{from_publication_date or 'all'}_p{page}_n{per_page}",
+                f"_{from_publication_date or 'all'}_p{page}_n{per_page}_{FIELDS_TAG}",
         )
         results = payload.get("results", [])
         if not results:
@@ -186,6 +193,36 @@ def total_citing(fetcher: Fetcher, work_id: str, *, work_type: str | None = None
         key=f"count_{wid}_{work_type or 'any'}",
     )
     return int(payload.get("meta", {}).get("count", 0))
+
+
+def reconstruct_abstract(inverted: dict[str, list[int]] | None) -> str | None:
+    """Rebuild abstract text from OpenAlex's inverted index.
+
+    For a withdrawn article the abstract is usually the withdrawal notice
+    itself, which is the only place the reason is stated in machine-readable
+    form.
+    """
+    if not inverted:
+        return None
+    positions: dict[int, str] = {}
+    for word, idxs in inverted.items():
+        for i in idxs:
+            positions[i] = word
+    return " ".join(positions[i] for i in sorted(positions)) or None
+
+
+def fetch_crossref(fetcher: Fetcher, doi: str) -> dict[str, Any] | None:
+    """The raw Crossref record, which is authoritative for retraction status."""
+    clean = doi.replace("https://doi.org/", "").strip()
+    if not clean:
+        return None
+    try:
+        payload = fetcher.get(
+            f"{CROSSREF}/works/{clean}", None, key=f"crossref_{clean.replace('/', '_')}"
+        )
+    except requests.RequestException:
+        return None
+    return payload.get("message")
 
 
 def fetch_retraction(fetcher: Fetcher, doi: str) -> dict[str, Any] | None:
