@@ -1,0 +1,378 @@
+{
+  "format_version": 5,
+  "next_node_id": 4741,
+  "next_rel_id": 5900,
+  "checkpoint_lsn": 18,
+  "commit_ts": 18,
+  "node_parts": [
+    {
+      "path": "nodes/0-262144-b74abff10d7f799291d012f6c8d41493.parquet",
+      "id_lo": 0,
+      "id_hi": 262144,
+      "rows": 4741,
+      "bytes": 193357
+    }
+  ],
+  "rel_parts": [
+    {
+      "path": "relationships/0-262144-765a32ee259958dadddd6f710bb9e2da.parquet",
+      "id_lo": 0,
+      "id_hi": 262144,
+      "rows": 5900,
+      "bytes": 74351
+    }
+  ],
+  "bytes_per_node": 40.78401181185403,
+  "bytes_per_rel": 12.601864406779661,
+  "codec": "parquet",
+  "indexes": [
+    {
+      "name": "author_id_uq",
+      "label": "Author",
+      "property": "openalex_id#RANGE#author_id_uq"
+    },
+    {
+      "name": "cites_lag_idx",
+      "label": "CITES",
+      "property": "post_retraction_lag_days#RANGE#cites_lag_idx"
+    },
+    {
+      "name": "claim_id_uq",
+      "label": "Claim",
+      "property": "id#RANGE#claim_id_uq"
+    },
+    {
+      "name": "claim_label_idx",
+      "label": "Claim",
+      "property": "label"
+    },
+    {
+      "name": "claim_text_ft",
+      "label": "Claim",
+      "property": "text#FULLTEXT#claim_text_ft"
+    },
+    {
+      "name": "just_id_uq",
+      "label": "Justification",
+      "property": "id#RANGE#just_id_uq"
+    },
+    {
+      "name": "retraction_id_uq",
+      "label": "RetractionEvent",
+      "property": "id#RANGE#retraction_id_uq"
+    },
+    {
+      "name": "state_tx_idx",
+      "label": "ClaimState",
+      "property": "tx_from_day"
+    },
+    {
+      "name": "state_valid_idx",
+      "label": "ClaimState",
+      "property": "valid_from_day"
+    },
+    {
+      "name": "work_id_uq",
+      "label": "Work",
+      "property": "openalex_id#RANGE#work_id_uq"
+    },
+    {
+      "name": "work_pubday_idx",
+      "label": "Work",
+      "property": "pub_day"
+    },
+    {
+      "name": "work_retracted_idx",
+      "label": "Work",
+      "property": "is_retracted"
+    },
+    {
+      "name": "work_title_ft",
+      "label": "Work",
+      "property": "title#FULLTEXT#work_title_ft"
+    },
+    {
+      "name": "work_type_idx",
+      "label": "Work",
+      "property": "type"
+    }
+  ],
+  "constraints": [
+    {
+      "name": "author_id_uq",
+      "relationship": false,
+      "label": "Author",
+      "properties": [
+        "openalex_id"
+      ],
+      "kind": "unique",
+      "property_type": null
+    },
+    {
+      "name": "claim_id_uq",
+      "relationship": false,
+      "label": "Claim",
+      "properties": [
+        "id"
+      ],
+      "kind": "unique",
+      "property_type": null
+    },
+    {
+      "name": "just_id_uq",
+      "relationship": false,
+      "label": "Justification",
+      "properties": [
+        "id"
+      ],
+      "kind": "unique",
+      "property_type": null
+    },
+    {
+      "name": "retraction_id_uq",
+      "relationship": false,
+      "label": "RetractionEvent",
+      "properties": [
+        "id"
+      ],
+      "kind": "unique",
+      "property_type": null
+    },
+    {
+      "name": "work_id_uq",
+      "relationship": false,
+      "label": "Work",
+      "properties": [
+        "openalex_id"
+      ],
+      "kind": "unique",
+      "property_type": null
+    }
+  ],
+  "theater": {
+    "databases": {
+      "neo4j": [
+        25,
+        false
+      ],
+      "system": [
+        25,
+        false
+      ],
+      "system_ontologies": [
+        25,
+        false
+      ]
+    },
+    "index_details": {
+      "author_id_uq": {
+        "kind": "Range",
+        "relationship": false,
+        "labels": [
+          "Author"
+        ],
+        "properties": [
+          "openalex_id"
+        ],
+        "with_properties": []
+      },
+      "cites_lag_idx": {
+        "kind": "Range",
+        "relationship": true,
+        "labels": [
+          "CITES"
+        ],
+        "properties": [
+          "post_retraction_lag_days"
+        ],
+        "with_properties": []
+      },
+      "claim_id_uq": {
+        "kind": "Range",
+        "relationship": false,
+        "labels": [
+          "Claim"
+        ],
+        "properties": [
+          "id"
+        ],
+        "with_properties": []
+      },
+      "claim_label_idx": {
+        "kind": "Range",
+        "relationship": false,
+        "labels": [
+          "Claim"
+        ],
+        "properties": [
+          "label"
+        ],
+        "with_properties": []
+      },
+      "claim_text_ft": {
+        "kind": "Fulltext",
+        "relationship": false,
+        "labels": [
+          "Claim"
+        ],
+        "properties": [
+          "text"
+        ],
+        "with_properties": []
+      },
+      "just_id_uq": {
+        "kind": "Range",
+        "relationship": false,
+        "labels": [
+          "Justification"
+        ],
+        "properties": [
+          "id"
+        ],
+        "with_properties": []
+      },
+      "retraction_id_uq": {
+        "kind": "Range",
+        "relationship": false,
+        "labels": [
+          "RetractionEvent"
+        ],
+        "properties": [
+          "id"
+        ],
+        "with_properties": []
+      },
+      "state_tx_idx": {
+        "kind": "Range",
+        "relationship": false,
+        "labels": [
+          "ClaimState"
+        ],
+        "properties": [
+          "tx_from_day"
+        ],
+        "with_properties": []
+      },
+      "state_valid_idx": {
+        "kind": "Range",
+        "relationship": false,
+        "labels": [
+          "ClaimState"
+        ],
+        "properties": [
+          "valid_from_day"
+        ],
+        "with_properties": []
+      },
+      "work_id_uq": {
+        "kind": "Range",
+        "relationship": false,
+        "labels": [
+          "Work"
+        ],
+        "properties": [
+          "openalex_id"
+        ],
+        "with_properties": []
+      },
+      "work_pubday_idx": {
+        "kind": "Range",
+        "relationship": false,
+        "labels": [
+          "Work"
+        ],
+        "properties": [
+          "pub_day"
+        ],
+        "with_properties": []
+      },
+      "work_retracted_idx": {
+        "kind": "Range",
+        "relationship": false,
+        "labels": [
+          "Work"
+        ],
+        "properties": [
+          "is_retracted"
+        ],
+        "with_properties": []
+      },
+      "work_title_ft": {
+        "kind": "Fulltext",
+        "relationship": false,
+        "labels": [
+          "Work"
+        ],
+        "properties": [
+          "title"
+        ],
+        "with_properties": []
+      },
+      "work_type_idx": {
+        "kind": "Range",
+        "relationship": false,
+        "labels": [
+          "Work"
+        ],
+        "properties": [
+          "type"
+        ],
+        "with_properties": []
+      }
+    },
+    "index_options": {
+      "author_id_uq": {},
+      "cites_lag_idx": {},
+      "claim_id_uq": {},
+      "claim_label_idx": {},
+      "claim_text_ft": {
+        "indexConfig": {
+          "t": "map",
+          "v": {
+            "fulltext.analyzer": {
+              "t": "string",
+              "v": "standard-no-stop-words"
+            },
+            "fulltext.eventually_consistent": {
+              "t": "bool",
+              "v": false
+            }
+          }
+        }
+      },
+      "just_id_uq": {},
+      "retraction_id_uq": {},
+      "state_tx_idx": {},
+      "state_valid_idx": {},
+      "work_id_uq": {},
+      "work_pubday_idx": {},
+      "work_retracted_idx": {},
+      "work_title_ft": {
+        "indexConfig": {
+          "t": "map",
+          "v": {
+            "fulltext.analyzer": {
+              "t": "string",
+              "v": "standard-no-stop-words"
+            },
+            "fulltext.eventually_consistent": {
+              "t": "bool",
+              "v": false
+            }
+          }
+        }
+      },
+      "work_type_idx": {}
+    },
+    "graph_types": {},
+    "current_graph_type": {
+      "node_types": [],
+      "edge_types": [],
+      "constraints": [],
+      "drop_constraint_names": []
+    },
+    "derived_constraints": {}
+  },
+  "query_engine": "in-memory",
+  "write_engine": "local"
+}

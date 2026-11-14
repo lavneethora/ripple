@@ -1,0 +1,14 @@
+CREATE RANGE INDEX `cites_lag_idx` FOR ()-[r:`CITES`]-() ON (r.`post_retraction_lag_days`);
+CREATE RANGE INDEX `claim_label_idx` FOR (n:`Claim`) ON (n.`label`);
+CREATE FULLTEXT INDEX `claim_text_ft` FOR (n:`Claim`) ON EACH [n.`text`] OPTIONS {indexConfig: {`fulltext.analyzer`: 'standard-no-stop-words',`fulltext.eventually_consistent`: false}};
+CREATE RANGE INDEX `state_tx_idx` FOR (n:`ClaimState`) ON (n.`tx_from_day`);
+CREATE RANGE INDEX `state_valid_idx` FOR (n:`ClaimState`) ON (n.`valid_from_day`);
+CREATE RANGE INDEX `work_pubday_idx` FOR (n:`Work`) ON (n.`pub_day`);
+CREATE RANGE INDEX `work_retracted_idx` FOR (n:`Work`) ON (n.`is_retracted`);
+CREATE FULLTEXT INDEX `work_title_ft` FOR (n:`Work`) ON EACH [n.`title`] OPTIONS {indexConfig: {`fulltext.analyzer`: 'standard-no-stop-words',`fulltext.eventually_consistent`: false}};
+CREATE RANGE INDEX `work_type_idx` FOR (n:`Work`) ON (n.`type`);
+CREATE CONSTRAINT `author_id_uq` FOR (n:`Author`) REQUIRE (n.`openalex_id`) IS UNIQUE;
+CREATE CONSTRAINT `claim_id_uq` FOR (n:`Claim`) REQUIRE (n.`id`) IS UNIQUE;
+CREATE CONSTRAINT `just_id_uq` FOR (n:`Justification`) REQUIRE (n.`id`) IS UNIQUE;
+CREATE CONSTRAINT `retraction_id_uq` FOR (n:`RetractionEvent`) REQUIRE (n.`id`) IS UNIQUE;
+CREATE CONSTRAINT `work_id_uq` FOR (n:`Work`) REQUIRE (n.`openalex_id`) IS UNIQUE;
