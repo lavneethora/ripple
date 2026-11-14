@@ -109,15 +109,40 @@ Run the test suite, including the truth maintenance correctness tests:
 
 ## Where the data lives
 
-`data/ripple-retractions/` will hold the persistent Relate directory store,
-committed to this repository so it can be inspected without running anything:
+`data/ripple-retractions/` is the persistent Relate directory store,
+committed to this repository so it can be inspected without running the
+application. It currently holds 4,741 nodes and 5,900 relationships, built
+entirely from real OpenAlex and Crossref records.
+
+With only the Python package installed:
+
+```bash
+./.venv/bin/python -c "import relate; c=relate.connect('data/ripple-retractions', read_only=True); print(dict(c.execute('MATCH (n) RETURN count(n) AS n').fetchall()[0]))"
+```
+
+Or with the Relate CLI, which is a separate install from the Python package:
 
 ```bash
 relate --database data/ripple-retractions --read-only "MATCH (n) RETURN count(n) AS n"
 ```
 
-**This store is not seeded yet.** Seeding from OpenAlex and Crossref is the
-next milestone.
+Rebuild it from source data with `python scripts/seed_demo.py`. HTTP
+responses are cached under `data/raw/`, which is not committed, and every
+write is a `MERGE`, so the script is safely re-runnable.
+
+### What is in the store
+
+A real clinical guidance document resting on retracted evidence:
+
+- **Gautret et al 2020** (`W3010930696`), the hydroxychloroquine study,
+  retracted 2020-07-01 per Crossref, cited 5,408 times.
+- **ESC COVID-19 guidance** (`W3216235612`), published 2021-09-13, which
+  cites it **439 days after the retraction** and is seeded with 309 of its
+  references so surviving support can be evaluated against real evidence.
+- Three of that document's references are retracted works, not one.
+- 30 further post-retraction citing reviews, classified by awareness:
+  6 unambiguous, 23 within the in-press grace window, 2 with year-only dates
+  that are deliberately excluded from headline counts.
 
 ## Current state
 
@@ -126,9 +151,10 @@ next milestone.
 | Cypher feature probe and compatibility record | working |
 | `GraphActor` connection boundary | working, 9 tests |
 | Truth maintenance engine | working, 27 tests |
-| Graph schema and epoch-day model | in progress |
-| OpenAlex and Crossref seeding | not started |
-| Seeded store in this repo | not started |
+| Graph schema and epoch-day model | working, 17 tests |
+| OpenAlex and Crossref seeding | working |
+| Seeded store in this repo | committed, 4,741 nodes |
+| Curated justification layer | in progress |
 | Graph explorer UI | not started |
 | MCP tool surface | not started |
 
