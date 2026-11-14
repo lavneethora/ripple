@@ -127,11 +127,26 @@ class ProvenanceTier(str, Enum):
 
     Surfaced next to every status it produces, so hand-curated support is
     never silently presented as equivalent to machine-extracted support.
+
+    SYNTHETIC exists to keep the engine honest during development. OpenAlex
+    records who cited whom but not what rests on what, so the justification
+    layer cannot be derived from the bibliographic data. Writing invented
+    claims and attributing them to a real clinical document would be exactly
+    the fabrication this project warns about, so illustrative fixtures are
+    tagged SYNTHETIC, are excluded from any headline figure, and are replaced
+    by CURATED entries read from the source documents.
     """
 
     CURATED = "curated"
     LLM_EXTRACTED = "llm_extracted"
     HEURISTIC = "heuristic"
+    SYNTHETIC = "synthetic"
+
+
+#: Tiers that may back a claim shown as evidence in a demo or headline count.
+TRUSTWORTHY_TIERS: frozenset[str] = frozenset(
+    {ProvenanceTier.CURATED.value, ProvenanceTier.LLM_EXTRACTED.value}
+)
 
 
 # Days after a retraction within which a citation is treated as an in-press
