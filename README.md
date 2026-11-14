@@ -45,6 +45,24 @@ claim to defensibility:
 > 3,412 works cite this; 1,342 after the retraction. **27 conclusions actually
 > lose support, 61 survive on independent corroboration, 9 are indeterminate.**
 
+### Not every retraction means the work is wrong
+
+Roughly a third of real retractions are procedural, and this dataset contains
+both kinds plus a false positive:
+
+| Work | OpenAlex | What the record shows |
+|---|---|---|
+| `W3010930696` Gautret 2020 | retracted | Retracted 2020-07-01. Reason curated from the publisher notice: **substantive**, so dependents lose support. |
+| `W4205843467` | retracted | Withdrawn 2020-05-27 as an accidental duplicate. **Procedural**, so dependents are flagged, not broken. |
+| `W3025220694` | retracted | **No Crossref retraction record.** The duplicate above was withdrawn; this original appears to have inherited the flag. Treated as not retracted. |
+
+Crossref decides whether a retraction exists. Reasons are classified from the
+notice where it is machine-readable, and otherwise curated by hand with a
+citable source in `data/curated/retraction_reasons.yaml`. An unclassified
+reason deliberately does **not** impeach the findings, because asserting a
+conclusion is unsupported on the strength of a reason nobody has read is the
+overreach this project exists to avoid.
+
 ### Honest caveat on the current data
 
 The justification layer in this repository is **synthetic and labelled as
@@ -180,7 +198,12 @@ A real clinical guidance document resting on retracted evidence:
 - **ESC COVID-19 guidance** (`W3216235612`), published 2021-09-13, which
   cites it **439 days after the retraction** and is seeded with 309 of its
   references so surviving support can be evaluated against real evidence.
-- Three of that document's references are retracted works, not one.
+- Three of that document's references are flagged retracted by OpenAlex.
+  **Only one of those holds up.** A second was withdrawn as an accidental
+  duplicate, which says nothing about whether its findings are correct, and
+  the third has no retraction record in Crossref at all. Saying "cites three
+  retracted works" would overstate it threefold, so RIPPLE reports the
+  breakdown and treats Crossref as authoritative.
 - 30 further post-retraction citing reviews, classified by awareness:
   6 unambiguous, 23 within the in-press grace window, 2 with year-only dates
   that are deliberately excluded from headline counts.
